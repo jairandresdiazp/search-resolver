@@ -29,7 +29,7 @@ import {
   getMapAndPriceRangeFromSelectedFacets,
 } from './utils'
 import { toCompatibilityArgs } from './newURLs'
-import { PATH_SEPARATOR, MAP_VALUES_SEP, SELLERS_BUCKET } from './constants'
+import { PATH_SEPARATOR, MAP_VALUES_SEP, SELLERS_BUCKET, FACETS_BUCKET } from './constants'
 import { shouldTranslateToTenantLocale } from '../../utils/i18n'
 import {
   buildAttributePath,
@@ -381,13 +381,29 @@ export const queries = {
       hideUnavailableItems: args.hideUnavailableItems,
     }
 
-    const result = await biggySearch.facets(biggyArgs)
+    const facetPromises = [biggySearch.facets(biggyArgs)]
+
+    if (!fullText) {
+      const categorySelectedFacets = args.selectedFacets.filter(facet => facet.key === 'c')
+      const solrQuery = categorySelectedFacets.map(facet => facet.value).join('/')
+      const solrMap = categorySelectedFacets.map(facet => facet.key).join(',')
+      const assembledQuery = `${solrQuery}?map=${solrMap}`
+      facetPromises.push(staleFromVBaseWhileRevalidate(
+        vbase,
+        FACETS_BUCKET,
+        assembledQuery,
+        search.facets,
+        assembledQuery
+      ))
+    }
+
+    const [intelligentSearchFacets, solrFacets] = await Promise.all(facetPromises)
 
     // FIXME: This is used to sort values based on catalog API.
     // Remove it when it is not necessary anymore
-    if (result && result.attributes) {
-      result.attributes = await Promise.all(
-        result.attributes.map(async (attribute: any) => {
+    if (intelligentSearchFacets && intelligentSearchFacets.attributes) {
+      intelligentSearchFacets.attributes = await Promise.all(
+        intelligentSearchFacets.attributes.map(async (attribute: any) => {
           if (
             attribute.type === 'text' &&
             attribute.ids &&
@@ -403,13 +419,13 @@ export const queries = {
     }
 
     const breadcrumb = buildBreadcrumb(
-      result.attributes || [],
+      intelligentSearchFacets.attributes || [],
       decodeURIComponent(args.fullText),
       args.selectedFacets
     )
 
     return {
-      facets: attributesToFilters({ ...result, breadcrumb }),
+      facets: attributesToFilters({ ...intelligentSearchFacets, breadcrumb, solrFacets, selectedFacets: args.selectedFacets }),
       queryArgs: {
         map: args.map,
         query: args.query,
