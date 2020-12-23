@@ -217,6 +217,7 @@ export const fieldResolvers = {
   ...productPriceRangeResolvers,
 }
 
+// TODO: We probably don't need this anymore. I think it is done on the rewriter.
 export const getCompatibilityArgs = async <T extends QueryArgs>(
   ctx: Context,
   args: T
@@ -364,11 +365,7 @@ export const queries = {
       args
     )) as FacetsInput
 
-    let { fullText, searchState } = args
-
-    if (fullText) {
-      fullText = await translateToStoreDefaultLanguage(ctx, args.fullText!)
-    }
+    const { fullText, searchState } = args
 
     const {
       clients: { biggySearch, search, checkout, vbase },

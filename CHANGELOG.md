@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+- Disable the `translatableV2` directive when the string comes from the Elastic Search.
+
 ## [1.29.3] - 2020-12-22
 ### Fixed
 - Guarantee that `properties` will have `originalName`.
