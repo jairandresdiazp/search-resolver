@@ -70,7 +70,8 @@ export class BiggySearchClient extends ExternalClient {
       facetValue: attributeValue,
       tradePolicy,
       indexingType,
-      sellers
+      sellers,
+      hideUnavailableItems = false,
     } = args
     const attributes: { key: string; value: string }[] = []
 
@@ -98,6 +99,7 @@ export class BiggySearchClient extends ExternalClient {
         metric: 'suggestion-products',
         params: {
           locale: this.locale,
+          hideUnavailableItems,
         },
         headers: {
           Cookie: buildBSearchFilterCookie(sellers),
